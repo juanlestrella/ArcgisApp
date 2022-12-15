@@ -4,12 +4,6 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 
 import androidx.databinding.DataBindingUtil
-import com.arcgismaps.ApiKey
-import com.arcgismaps.ArcGISEnvironment
-import com.arcgismaps.mapping.ArcGISMap
-import com.arcgismaps.mapping.BasemapStyle
-import com.arcgismaps.mapping.Viewpoint
-import com.arcgismaps.mapping.view.MapView
 import com.example.android.arcgis.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -17,6 +11,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
     }
+
+
     /** TODO: start thinking about the following
      * what api am i going to use
      * how the app is going to be structured/ designed
