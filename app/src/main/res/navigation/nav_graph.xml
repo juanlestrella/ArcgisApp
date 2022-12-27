@@ -2,9 +2,13 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/homeFragment">
+    app:startDestination="@id/mapFragment">
     <fragment
         android:id="@+id/homeFragment"
         android:name="com.example.android.arcgis.home.HomeFragment"
         android:label="HomeFragment" />
+    <fragment
+        android:id="@+id/mapFragment"
+        android:name="com.example.android.arcgis.map.MapFragment"
+        android:label="MapFragment" />
 </navigation>
