@@ -5,6 +5,9 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Spinner
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
@@ -57,17 +60,38 @@ class MapFragment : Fragment() {
         mapView = binding.mapView
         val navController = findNavController()
         setApiKey()
-        setMap()
+        setMap(binding.spinner)
 
         return binding.root
     }
 
-    private fun setMap(){
-        val map = ArcGISMap(BasemapStyle.ARCGIS_TOPOGRAPHIC)
+    private fun setSpinner(spinner: Spinner) {
+        ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_item,
+            BasemapStyle.values().map {it.name.replace("_", " ")}.toTypedArray()
+        ).also{ adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_item)
+            spinner.adapter = adapter
+        }
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>,
+                view: View?,
+                position: Int,
+                id: Long) {
+                mapView.map = ArcGISMap(BasemapStyle.valueOf(parent.getItemAtPosition(position).toString().replace(" ", "_")))
+            }
 
-        // set the map to be displayed in the layout's MapView
-        mapView.map = map
+            override fun onNothingSelected(p0: AdapterView<*>?) {
+                Toast.makeText(context, "Nothing selected", Toast.LENGTH_LONG).show()
+            }
 
+        }
+    }
+
+    private fun setMap(spinner: Spinner){
+        setSpinner(spinner)
         locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.RECENTER
         locationDisplay.startAsync()
     }
