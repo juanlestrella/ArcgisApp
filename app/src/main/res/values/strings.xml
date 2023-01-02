@@ -1,4 +1,12 @@
 <resources>
     <string name="app_name">Arcgis</string>
     <string name="location_permission_denied">LocationDisplayManager cannot run because location permission was denied</string>
+    <string-array name="maps_array">
+        <item>OpenStreetMap Standard</item>
+        <item>OpenStreetMap Standard Relief</item>
+        <item>OpenStreetMap Streets</item>
+    </string-array>
+    <string name="OSM_STANDARD">OSM_STANDARD</string>
+    <string name="OSM_STANDARD_RELIEF">OSM_STANDARD_RELIEF</string>
+    <string name="OSM_STREETS">OSM_STREETS</string>
 </resources>
