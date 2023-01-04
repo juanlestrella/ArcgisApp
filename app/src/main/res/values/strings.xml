@@ -9,4 +9,5 @@
     <string name="OSM_STANDARD">OSM_STANDARD</string>
     <string name="OSM_STANDARD_RELIEF">OSM_STANDARD_RELIEF</string>
     <string name="OSM_STREETS">OSM_STREETS</string>
+    <string name="search_address"> Search Address </string>
 </resources>

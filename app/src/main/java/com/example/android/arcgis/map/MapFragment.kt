@@ -1,6 +1,7 @@
 package com.example.android.arcgis.map
 
 import android.Manifest
+import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -8,26 +9,32 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContentProviderCompat.requireContext
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 
-import com.esri.arcgisruntime.ArcGISRuntimeEnvironment
 import com.esri.arcgisruntime.ArcGISRuntimeEnvironment.setApiKey
 import com.esri.arcgisruntime.layers.FeatureLayer
 import com.esri.arcgisruntime.loadable.LoadStatus
 import com.esri.arcgisruntime.mapping.ArcGISMap
 import com.esri.arcgisruntime.mapping.BasemapStyle
+import com.esri.arcgisruntime.mapping.Viewpoint
+import com.esri.arcgisruntime.mapping.view.Graphic
+import com.esri.arcgisruntime.mapping.view.GraphicsOverlay
 import com.esri.arcgisruntime.mapping.view.MapView
 import com.esri.arcgisruntime.mapping.view.LocationDisplay
 import com.esri.arcgisruntime.portal.Portal
 import com.esri.arcgisruntime.portal.PortalItem
+import com.esri.arcgisruntime.symbology.PictureMarkerSymbol
+import com.esri.arcgisruntime.tasks.geocode.GeocodeParameters
+import com.esri.arcgisruntime.tasks.geocode.GeocodeResult
+import com.esri.arcgisruntime.tasks.geocode.LocatorTask
 import com.example.android.arcgis.BuildConfig.ArcgisToken
 import com.example.android.arcgis.Constants
-import com.example.android.arcgis.MainActivity
 
 import com.example.android.arcgis.R
 import com.example.android.arcgis.databinding.FragmentMapBinding
@@ -42,132 +49,30 @@ class MapFragment : Fragment() {
 
     private lateinit var mapView: MapView
 
+    private lateinit var addressSearchView: SearchView
+
+    private var addressGeocodeParameters: GeocodeParameters ?= null
+
+    private val pinSymbol: PictureMarkerSymbol? by lazy {
+        createPinSymbol()
+    }
+
+    private val locatorTask: LocatorTask by lazy {
+        LocatorTask(Constants.locatorTask)
+    }
+
     private val locationDisplay: LocationDisplay by lazy {
         mapView.locationDisplay
+    }
+
+    private val graphicsOverlay: GraphicsOverlay by lazy {
+        GraphicsOverlay()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestPermission()
     }
-    override fun onPause() {
-        mapView.pause()
-        super.onPause()
-    }
-    override fun onResume() {
-        super.onResume()
-        mapView.resume()
-    }
-    override fun onDestroy() {
-        mapView.dispose()
-        super.onDestroy()
-    }
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        binding = FragmentMapBinding.inflate(inflater)
-        binding.lifecycleOwner = viewLifecycleOwner
-        mapView = binding.mapView
-        val navController = findNavController()
-        setApiKey()
-        setMap(binding.spinner)
-
-        return binding.root
-    }
-
-    private fun setMap(spinner: Spinner){
-        setSpinner(spinner)
-        locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.RECENTER
-        locationDisplay.startAsync()
-    }
-
-    /**
-     * Change the basemap style (OSM Standard, OSM Standard Relief, OSM Streets)
-     */
-    private fun setSpinner(spinner: Spinner) {
-        ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            //BasemapStyle.values().map {it.name.replace("_", " ")}.toTypedArray() // this would show all the basemap
-            resources.getStringArray(R.array.maps_array)
-        ).also{ adapter ->
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_item)
-            spinner.adapter = adapter
-        }
-        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>,
-                view: View?,
-                position: Int,
-                id: Long) {
-                //mapView.map = ArcGISMap(BasemapStyle.valueOf(parent.getItemAtPosition(position).toString().replace(" ", "_"))) // this would show all the basemap
-                when (position.toInt()){
-                    0 -> {
-                        addFeatureLayers(ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD))))
-                    }
-                    1 -> {
-                        addFeatureLayers(ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD_RELIEF))))
-                    }
-                    else -> {
-                        addFeatureLayers(ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STREETS))))
-                    }
-                }
-            }
-
-            override fun onNothingSelected(p0: AdapterView<*>?) {
-                Toast.makeText(context, "Nothing selected", Toast.LENGTH_LONG).show()
-            }
-
-        }
-    }
-
-    /**
-     * Adds feature layers to the different types of map from Spinner
-     */
-    private fun addFeatureLayers(map: ArcGISMap) {
-        val portal = Portal(Constants.portal)
-        val layerId = 0.toLong()
-        mapView.map = map
-        addFeatureLayerHelper(portal, Constants.portalItemIdShops, layerId)
-        addFeatureLayerHelper(portal, Constants.portalItemIdTouristAttractions, layerId)
-    }
-
-    /**
-     * helps remove redundancy for addFeatureLayers
-     */
-    private fun addFeatureLayerHelper(portal: Portal, portalId: String, layerId: Long) {
-        val portalItem = PortalItem(portal, portalId)
-        val layer = FeatureLayer(portalItem, layerId)
-
-        mapView.map.apply{
-            operationalLayers.add(layer)
-        }
-
-        portalLoadingListener(portalItem)
-    }
-
-    /**
-     * add a listener for if portalItem fails to load
-     */
-    private fun portalLoadingListener(portalItem : PortalItem){
-        portalItem.addDoneLoadingListener {
-            if(portalItem.loadStatus != LoadStatus.LOADED){
-                val error = "Failed to load portal item ${portalItem.loadError.message}"
-                Log.e(TAG, error)
-                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
-                return@addDoneLoadingListener
-            }
-        }
-    }
-
-    private fun setApiKey() {
-        val apiKey = ArcgisToken
-        ArcGISRuntimeEnvironment.setApiKey(apiKey)
-    }
-
     /**
      * Request Permission from the user to get their current location
      */
@@ -199,5 +104,201 @@ class MapFragment : Fragment() {
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
         ))
+    }
+
+    override fun onPause() {
+        mapView.pause()
+        super.onPause()
+    }
+    override fun onResume() {
+        super.onResume()
+        mapView.resume()
+    }
+    override fun onDestroy() {
+        mapView.dispose()
+        super.onDestroy()
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        binding = FragmentMapBinding.inflate(inflater)
+        binding.lifecycleOwner = viewLifecycleOwner
+
+        mapView = binding.mapView
+        // need this for addFeatureLayers
+        mapView.map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
+
+        addressSearchView = binding.searchAddress
+
+        val navController = findNavController()
+        setApiKey()
+        setMap(binding.spinner)
+        addFeatureLayers()
+        // TODO need to add graphicsOverlay
+        setAddressSearchView()
+
+        return binding.root
+    }
+
+    private fun setApiKey() {
+        val apiKey = ArcgisToken
+        setApiKey(apiKey)
+    }
+
+    private fun setMap(spinner: Spinner){
+        setSpinner(spinner)
+        locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.RECENTER
+        locationDisplay.startAsync()
+    }
+
+    /**
+     * Change the basemap style (OSM Standard, OSM Standard Relief, OSM Streets)
+     */
+    private fun setSpinner(spinner: Spinner) {
+        ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_item,
+            //BasemapStyle.values().map {it.name.replace("_", " ")}.toTypedArray() // this would show all the basemap
+            resources.getStringArray(R.array.maps_array)
+        ).also{ adapter ->
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_item)
+            spinner.adapter = adapter
+        }
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(
+                parent: AdapterView<*>,
+                view: View?,
+                position: Int,
+                id: Long) {
+                //mapView.map = ArcGISMap(BasemapStyle.valueOf(parent.getItemAtPosition(position).toString().replace(" ", "_"))) // this would show all the basemap
+                when (position){
+                    0 -> { mapView.map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD))) }
+                    1 -> { mapView.map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD_RELIEF))) }
+                    else -> { mapView.map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STREETS))) }
+                }
+            }
+            override fun onNothingSelected(p0: AdapterView<*>?) {
+                Toast.makeText(context, "Nothing selected", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    /**
+     * Adds feature layers to the different types of map from Spinner
+     */
+    private fun addFeatureLayers() {
+        val portal = Portal(Constants.portal)
+        addFeatureLayerHelper(portal, Constants.portalItemIdShops)
+        addFeatureLayerHelper(portal, Constants.portalItemIdTouristAttractions)
+    }
+
+    /**
+     * Helps remove redundancy for addFeatureLayers
+     */
+    private fun addFeatureLayerHelper(portal: Portal, portalId: String, layerId: Long = 0.toLong()) {
+        val portalItem = PortalItem(portal, portalId)
+        val layer = FeatureLayer(portalItem, layerId)
+        mapView.map.apply{
+            operationalLayers.add(layer)
+        }
+        portalLoadingListener(portalItem)
+    }
+
+    /**
+     * Add a listener for if portalItem fails to load
+     */
+    private fun portalLoadingListener(portalItem : PortalItem){
+        portalItem.addDoneLoadingListener {
+            if(portalItem.loadStatus != LoadStatus.LOADED){
+                val error = "Failed to load portal item ${portalItem.loadError.message}"
+                Log.e(TAG, error)
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                return@addDoneLoadingListener
+            }
+        }
+    }
+
+    /**
+     * Set up the address search view
+     */
+    private fun setAddressSearchView() {
+        addressGeocodeParameters = GeocodeParameters().apply {
+            resultAttributeNames.addAll(listOf("PlaceName", "Place_addr"))
+            maxResults = 1
+
+            addressSearchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+                override fun onQueryTextSubmit(query: String): Boolean {
+                    geocodeTypedAddress(query)
+                    addressSearchView.clearFocus()
+                    return true
+                }
+
+                override fun onQueryTextChange(p0: String?): Boolean {
+                    TODO("Not yet implemented")
+                    return true
+                }
+            })
+        }
+    }
+
+    /**
+     * Geocode the address sent by user
+     */
+    private fun geocodeTypedAddress(address : String){
+        locatorTask.addDoneLoadingListener {
+            if (locatorTask.loadStatus == LoadStatus.LOADED){
+                val geocodeResultFuture = locatorTask.geocodeAsync(address, addressGeocodeParameters)
+                geocodeResultFuture.addDoneListener {
+                    try {
+                        // get result of async operation
+                        val geocodeResult = geocodeResultFuture.get()
+                        if(geocodeResult.isNotEmpty()) {
+                            displaySearchResultOnMap(geocodeResult[0])
+                        } else {
+                            Toast.makeText(requireContext(), "Location not found", Toast.LENGTH_LONG).show()
+                        }
+                    } catch (e: Exception){
+                        Toast.makeText(requireContext(), "Geocode failed on address", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } else {
+                locatorTask.retryLoadAsync()
+            }
+        }
+        locatorTask.loadAsync()
+    }
+
+    /**
+     * Add a GeocodeResult to the graphicsOverlay
+     */
+    private fun displaySearchResultOnMap(geocodeResult: GeocodeResult) {
+        // create graphic object for resulting location
+        val resultPoint = geocodeResult.displayLocation
+        val resultLocationGraphic = Graphic(resultPoint, geocodeResult.attributes, pinSymbol)
+        // add graphic to location layer
+        graphicsOverlay.graphics.add(resultLocationGraphic)
+        mapView.setViewpointAsync(Viewpoint(geocodeResult.extent), 1f)
+    }
+
+    /**
+     * Create a Picture Marker Symbol from the pin icon
+     */
+    private fun createPinSymbol() : PictureMarkerSymbol? {
+        val pinDrawable = ContextCompat.getDrawable(
+            requireContext(),
+            R.drawable.ic_baseline_pin_drop_24) as BitmapDrawable ?
+        val pinSymbol : PictureMarkerSymbol
+        try {
+            pinSymbol = PictureMarkerSymbol.createAsync(pinDrawable).get()
+            pinSymbol.width = 19f
+            pinSymbol.height = 72f
+            return pinSymbol
+        } catch (e : Exception){
+            Toast.makeText(requireContext(), "Failed to load pin", Toast.LENGTH_LONG).show()
+        }
+        return null
     }
 }
