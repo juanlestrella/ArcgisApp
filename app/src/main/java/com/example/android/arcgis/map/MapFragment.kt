@@ -5,6 +5,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
@@ -13,6 +14,7 @@ import android.widget.SearchView
 import android.widget.Spinner
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -21,8 +23,10 @@ import com.esri.arcgisruntime.ArcGISRuntimeEnvironment.setApiKey
 import com.esri.arcgisruntime.layers.FeatureLayer
 import com.esri.arcgisruntime.loadable.LoadStatus
 import com.esri.arcgisruntime.mapping.ArcGISMap
+import com.esri.arcgisruntime.mapping.Basemap
 import com.esri.arcgisruntime.mapping.BasemapStyle
 import com.esri.arcgisruntime.mapping.Viewpoint
+import com.esri.arcgisruntime.mapping.view.DefaultMapViewOnTouchListener
 import com.esri.arcgisruntime.mapping.view.Graphic
 import com.esri.arcgisruntime.mapping.view.GraphicsOverlay
 import com.esri.arcgisruntime.mapping.view.MapView
@@ -35,6 +39,7 @@ import com.esri.arcgisruntime.tasks.geocode.GeocodeResult
 import com.esri.arcgisruntime.tasks.geocode.LocatorTask
 import com.example.android.arcgis.BuildConfig.ArcgisToken
 import com.example.android.arcgis.Constants
+import com.example.android.arcgis.Constants.locatorTask
 
 import com.example.android.arcgis.R
 import com.example.android.arcgis.databinding.FragmentMapBinding
@@ -128,11 +133,20 @@ class MapFragment : Fragment() {
         binding.lifecycleOwner = viewLifecycleOwner
 
         mapView = binding.mapView
-        // need this for addFeatureLayers
-        mapView.map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
+
+        mapView.apply {
+            // need to init map for addFeatureLayers
+            map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
+            //graphicsOverlays.add(graphicsOverlay) // TODO: Why is this causing the app to crash
+            onTouchListener = object : DefaultMapViewOnTouchListener(requireContext(),mapView){
+                override fun onSingleTapConfirmed(motionEvent: MotionEvent): Boolean {
+                    identifyGraphic(motionEvent)
+                    return true
+                }
+            }
+        }
 
         addressSearchView = binding.searchAddress
-
         val navController = findNavController()
         setApiKey()
         setMap(binding.spinner)
@@ -175,9 +189,9 @@ class MapFragment : Fragment() {
                 id: Long) {
                 //mapView.map = ArcGISMap(BasemapStyle.valueOf(parent.getItemAtPosition(position).toString().replace(" ", "_"))) // this would show all the basemap
                 when (position){
-                    0 -> { mapView.map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD))) }
-                    1 -> { mapView.map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD_RELIEF))) }
-                    else -> { mapView.map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STREETS))) }
+                    0 -> { mapView.map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD))) }
+                    1 -> { mapView.map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD_RELIEF))) }
+                    else -> { mapView.map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STREETS))) }
                 }
             }
             override fun onNothingSelected(p0: AdapterView<*>?) {
@@ -201,9 +215,7 @@ class MapFragment : Fragment() {
     private fun addFeatureLayerHelper(portal: Portal, portalId: String, layerId: Long = 0.toLong()) {
         val portalItem = PortalItem(portal, portalId)
         val layer = FeatureLayer(portalItem, layerId)
-        mapView.map.apply{
-            operationalLayers.add(layer)
-        }
+        mapView.map.operationalLayers.add(layer)
         portalLoadingListener(portalItem)
     }
 
@@ -281,6 +293,13 @@ class MapFragment : Fragment() {
         // add graphic to location layer
         graphicsOverlay.graphics.add(resultLocationGraphic)
         mapView.setViewpointAsync(Viewpoint(geocodeResult.extent), 1f)
+    }
+
+    /**
+     * Identifies and shows a call out on tapped graphic
+     */
+    private fun identifyGraphic(motionEvent: MotionEvent){
+        //TODO
     }
 
     /**
