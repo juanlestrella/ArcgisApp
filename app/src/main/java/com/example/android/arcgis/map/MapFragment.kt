@@ -1,8 +1,10 @@
 package com.example.android.arcgis.map
 
 import android.Manifest
+import android.database.MatrixCursor
 import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
+import android.provider.BaseColumns
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -11,6 +13,7 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.SearchView
+import android.widget.SimpleCursorAdapter
 import android.widget.Spinner
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -248,8 +251,59 @@ class MapFragment : Fragment() {
                     return true
                 }
 
-                override fun onQueryTextChange(p0: String?): Boolean {
-                    TODO("Not yet implemented")
+                override fun onQueryTextChange(query: String): Boolean {
+                    if(query.isNotEmpty()){
+                        val suggestions = locatorTask.suggestAsync(query)
+                        suggestions.addDoneListener {
+                            try {
+                                val suggestResults = suggestions.get()
+                                // set up params for searching with MatrixCursor
+                                val address = "address"
+                                val columnNames = arrayOf(BaseColumns._ID, address)
+                                val suggestionsCursor = MatrixCursor(columnNames)
+
+                                // add each address suggestion to a new row
+                                for((key, result) in suggestResults.withIndex()){
+                                    suggestionsCursor.addRow(arrayOf<Any>(key,result.label))
+                                }
+                                // column names for the adapter to look at when mapping data
+                                val cols = arrayOf(address)
+                                // ids that show where data should be assign in the layout
+                                val to = intArrayOf(R.id.suggestion_address)
+                                // define SimpleCursorAdapter
+                                val suggestionAdapter = SimpleCursorAdapter(
+                                    requireContext(),
+                                    R.layout.suggestions,
+                                    suggestionsCursor,
+                                    cols,
+                                    to,
+                                    0)
+                                addressSearchView.suggestionsAdapter = suggestionAdapter
+                                // handle an address suggestion being chosen
+                                addressSearchView.setOnSuggestionListener(object : SearchView.OnSuggestionListener{
+                                    override fun onSuggestionSelect(position: Int): Boolean {
+                                        return false
+                                    }
+
+                                    override fun onSuggestionClick(position: Int): Boolean {
+                                       // get selected row
+                                        (suggestionAdapter.getItem(position) as? MatrixCursor)?.let { selectedRow ->
+                                            // get row's index
+                                            val selectedCursorIndex = selectedRow.getColumnIndex(address)
+                                            // get the string from the row at index
+                                            val selectedAddress = selectedRow.getString(selectedCursorIndex)
+                                            // use clicked suggestion as query
+                                            addressSearchView.setQuery(selectedAddress, true)
+                                        }
+                                        return true
+                                    }
+                                })
+                            } catch (e: Exception){
+                                Log.e(TAG, "Geocode Suggestion Error: " + e.message)
+                                Toast.makeText(requireContext(), "Geocode Suggestion Error", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
                     return true
                 }
             })
@@ -269,11 +323,13 @@ class MapFragment : Fragment() {
                         val geocodeResult = geocodeResultFuture.get()
                         if(geocodeResult.isNotEmpty()) {
                             displaySearchResultOnMap(geocodeResult[0])
+                            Toast.makeText(requireContext(), "Geocode result: " + geocodeResult[0].label, Toast.LENGTH_LONG).show()
                         } else {
                             Toast.makeText(requireContext(), "Location not found", Toast.LENGTH_LONG).show()
                         }
                     } catch (e: Exception){
-                        Toast.makeText(requireContext(), "Geocode failed on address", Toast.LENGTH_LONG).show()
+                        Log.e(TAG, "Geocode Failed: " + e.message)
+                        Toast.makeText(requireContext(), "Geocode failed on address: " + e.message, Toast.LENGTH_LONG).show()
                     }
                 }
             } else {
@@ -289,7 +345,7 @@ class MapFragment : Fragment() {
     private fun displaySearchResultOnMap(geocodeResult: GeocodeResult) {
         // create graphic object for resulting location
         val resultPoint = geocodeResult.displayLocation
-        val resultLocationGraphic = Graphic(resultPoint, geocodeResult.attributes, pinSymbol)
+        val resultLocationGraphic = Graphic(resultPoint, geocodeResult.attributes, pinSymbol) //, pinSymbol
         // add graphic to location layer
         graphicsOverlay.graphics.add(resultLocationGraphic)
         mapView.setViewpointAsync(Viewpoint(geocodeResult.extent), 1f)
@@ -308,7 +364,7 @@ class MapFragment : Fragment() {
     private fun createPinSymbol() : PictureMarkerSymbol? {
         val pinDrawable = ContextCompat.getDrawable(
             requireContext(),
-            R.drawable.ic_baseline_pin_drop_24) as BitmapDrawable ?
+            R.drawable.pin_location_removebg_preview) as BitmapDrawable ?
         val pinSymbol : PictureMarkerSymbol
         try {
             pinSymbol = PictureMarkerSymbol.createAsync(pinDrawable).get()
