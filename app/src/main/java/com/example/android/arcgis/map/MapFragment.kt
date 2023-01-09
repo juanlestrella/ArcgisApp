@@ -17,7 +17,6 @@ import android.widget.SimpleCursorAdapter
 import android.widget.Spinner
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
@@ -42,7 +41,6 @@ import com.esri.arcgisruntime.tasks.geocode.GeocodeResult
 import com.esri.arcgisruntime.tasks.geocode.LocatorTask
 import com.example.android.arcgis.BuildConfig.ArcgisToken
 import com.example.android.arcgis.Constants
-import com.example.android.arcgis.Constants.locatorTask
 
 import com.example.android.arcgis.R
 import com.example.android.arcgis.databinding.FragmentMapBinding
@@ -80,6 +78,7 @@ class MapFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestPermission()
+
     }
     /**
      * Request Permission from the user to get their current location
@@ -136,11 +135,18 @@ class MapFragment : Fragment() {
         binding.lifecycleOwner = viewLifecycleOwner
 
         mapView = binding.mapView
+        addressSearchView = binding.searchAddress
+
+        val navController = findNavController()
+
+        setApiKey()
 
         mapView.apply {
             // need to init map for addFeatureLayers
             map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
+
             //graphicsOverlays.add(graphicsOverlay) // TODO: Why is this causing the app to crash
+            graphicsOverlays.add(graphicsOverlay)
             onTouchListener = object : DefaultMapViewOnTouchListener(requireContext(),mapView){
                 override fun onSingleTapConfirmed(motionEvent: MotionEvent): Boolean {
                     identifyGraphic(motionEvent)
@@ -149,13 +155,10 @@ class MapFragment : Fragment() {
             }
         }
 
-        addressSearchView = binding.searchAddress
-        val navController = findNavController()
-        setApiKey()
         setMap(binding.spinner)
         addFeatureLayers()
-        // TODO need to add graphicsOverlay
         setAddressSearchView()
+
 
         return binding.root
     }
@@ -192,9 +195,24 @@ class MapFragment : Fragment() {
                 id: Long) {
                 //mapView.map = ArcGISMap(BasemapStyle.valueOf(parent.getItemAtPosition(position).toString().replace(" ", "_"))) // this would show all the basemap
                 when (position){
-                    0 -> { mapView.map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD))) }
-                    1 -> { mapView.map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD_RELIEF))) }
-                    else -> { mapView.map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STREETS))) }
+                    0 -> {
+                        mapView.apply{
+                            map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
+                            //graphicsOverlays.add(graphicsOverlay)
+                        }
+                    }
+                    1 -> {
+                        mapView.apply{
+                            map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD_RELIEF)))
+                            //graphicsOverlays.add(graphicsOverlay)
+                        }
+                    }
+                    else -> {
+                        mapView.apply{
+                            map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STREETS)))
+                            //graphicsOverlays.add(graphicsOverlay)
+                        }
+                    }
                 }
             }
             override fun onNothingSelected(p0: AdapterView<*>?) {
@@ -323,6 +341,7 @@ class MapFragment : Fragment() {
                         val geocodeResult = geocodeResultFuture.get()
                         if(geocodeResult.isNotEmpty()) {
                             displaySearchResultOnMap(geocodeResult[0])
+                            // TODO: remove this later, need to add graphicsOverlay
                             Toast.makeText(requireContext(), "Geocode result: " + geocodeResult[0].label, Toast.LENGTH_LONG).show()
                         } else {
                             Toast.makeText(requireContext(), "Location not found", Toast.LENGTH_LONG).show()
@@ -343,9 +362,11 @@ class MapFragment : Fragment() {
      * Add a GeocodeResult to the graphicsOverlay
      */
     private fun displaySearchResultOnMap(geocodeResult: GeocodeResult) {
+        // clear previous graphics overlay
+        graphicsOverlay.graphics.clear()
         // create graphic object for resulting location
         val resultPoint = geocodeResult.displayLocation
-        val resultLocationGraphic = Graphic(resultPoint, geocodeResult.attributes, pinSymbol) //, pinSymbol
+        val resultLocationGraphic = Graphic(resultPoint, geocodeResult.attributes, pinSymbol)
         // add graphic to location layer
         graphicsOverlay.graphics.add(resultLocationGraphic)
         mapView.setViewpointAsync(Viewpoint(geocodeResult.extent), 1f)
@@ -368,8 +389,8 @@ class MapFragment : Fragment() {
         val pinSymbol : PictureMarkerSymbol
         try {
             pinSymbol = PictureMarkerSymbol.createAsync(pinDrawable).get()
-            pinSymbol.width = 19f
-            pinSymbol.height = 72f
+            pinSymbol.width = 125f
+            pinSymbol.height = 100f
             return pinSymbol
         } catch (e : Exception){
             Toast.makeText(requireContext(), "Failed to load pin", Toast.LENGTH_LONG).show()
