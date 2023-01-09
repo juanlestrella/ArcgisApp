@@ -1,8 +1,10 @@
 package com.example.android.arcgis.map
 
 import android.Manifest
+import android.content.res.ColorStateList
 import android.database.MatrixCursor
 import android.graphics.drawable.BitmapDrawable
+import android.nfc.Tag
 import android.os.Bundle
 import android.provider.BaseColumns
 import android.util.Log
@@ -10,29 +12,23 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.SearchView
-import android.widget.SimpleCursorAdapter
-import android.widget.Spinner
-import android.widget.Toast
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.graphics.Color
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 
 import com.esri.arcgisruntime.ArcGISRuntimeEnvironment.setApiKey
+import com.esri.arcgisruntime.concurrent.ListenableFuture
 import com.esri.arcgisruntime.layers.FeatureLayer
 import com.esri.arcgisruntime.loadable.LoadStatus
 import com.esri.arcgisruntime.mapping.ArcGISMap
 import com.esri.arcgisruntime.mapping.Basemap
 import com.esri.arcgisruntime.mapping.BasemapStyle
 import com.esri.arcgisruntime.mapping.Viewpoint
-import com.esri.arcgisruntime.mapping.view.DefaultMapViewOnTouchListener
-import com.esri.arcgisruntime.mapping.view.Graphic
-import com.esri.arcgisruntime.mapping.view.GraphicsOverlay
-import com.esri.arcgisruntime.mapping.view.MapView
-import com.esri.arcgisruntime.mapping.view.LocationDisplay
+import com.esri.arcgisruntime.mapping.view.*
 import com.esri.arcgisruntime.portal.Portal
 import com.esri.arcgisruntime.portal.PortalItem
 import com.esri.arcgisruntime.symbology.PictureMarkerSymbol
@@ -44,6 +40,7 @@ import com.example.android.arcgis.Constants
 
 import com.example.android.arcgis.R
 import com.example.android.arcgis.databinding.FragmentMapBinding
+import kotlin.math.roundToInt
 
 class MapFragment : Fragment() {
 
@@ -56,6 +53,8 @@ class MapFragment : Fragment() {
     private lateinit var mapView: MapView
 
     private lateinit var addressSearchView: SearchView
+
+    private var callout: Callout? = null
 
     private var addressGeocodeParameters: GeocodeParameters ?= null
 
@@ -142,10 +141,10 @@ class MapFragment : Fragment() {
         setApiKey()
 
         mapView.apply {
-            // need to init map for addFeatureLayers
+            // init map for addFeatureLayers
             map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
 
-            //graphicsOverlays.add(graphicsOverlay) // TODO: Why is this causing the app to crash
+            // graphicsOverlay requires ApiKey
             graphicsOverlays.add(graphicsOverlay)
             onTouchListener = object : DefaultMapViewOnTouchListener(requireContext(),mapView){
                 override fun onSingleTapConfirmed(motionEvent: MotionEvent): Boolean {
@@ -198,19 +197,16 @@ class MapFragment : Fragment() {
                     0 -> {
                         mapView.apply{
                             map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
-                            //graphicsOverlays.add(graphicsOverlay)
                         }
                     }
                     1 -> {
                         mapView.apply{
                             map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD_RELIEF)))
-                            //graphicsOverlays.add(graphicsOverlay)
                         }
                     }
                     else -> {
                         mapView.apply{
                             map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STREETS)))
-                            //graphicsOverlays.add(graphicsOverlay)
                         }
                     }
                 }
@@ -341,8 +337,6 @@ class MapFragment : Fragment() {
                         val geocodeResult = geocodeResultFuture.get()
                         if(geocodeResult.isNotEmpty()) {
                             displaySearchResultOnMap(geocodeResult[0])
-                            // TODO: remove this later, need to add graphicsOverlay
-                            Toast.makeText(requireContext(), "Geocode result: " + geocodeResult[0].label, Toast.LENGTH_LONG).show()
                         } else {
                             Toast.makeText(requireContext(), "Location not found", Toast.LENGTH_LONG).show()
                         }
@@ -376,7 +370,63 @@ class MapFragment : Fragment() {
      * Identifies and shows a call out on tapped graphic
      */
     private fun identifyGraphic(motionEvent: MotionEvent){
-        //TODO
+        val screenPoint: android.graphics.Point = android.graphics.Point(
+            motionEvent.x.roundToInt(), motionEvent.y.roundToInt()
+        )
+        // get the graphics near the tapped location
+        val identifyResultFuture: ListenableFuture<IdentifyGraphicsOverlayResult> =
+            mapView.identifyGraphicsOverlayAsync(graphicsOverlay, screenPoint, 10.0, false)
+        identifyResultFuture.addDoneListener {
+            try{
+                val identifyGraphicsOverlayResult: IdentifyGraphicsOverlayResult = identifyResultFuture.get()
+                val graphics = identifyGraphicsOverlayResult.graphics
+                // gets first graphic
+                if (graphics.isNotEmpty()){
+                    val identifiedGraphic : Graphic = graphics[0]
+                    // show call out of the identified graphic
+                    showCallout(identifiedGraphic)
+                } else {
+                    callout?.dismiss()
+                }
+            }catch (e: Exception){
+                Log.e(TAG, "Identify error: " + e.message)
+                Toast.makeText(requireContext(), "Identify error: " + e.message, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    /**
+     * Shows the given graphic's attributes as a call out
+     * TODO: Add more information to callout
+     */
+    private fun showCallout(identifiedGraphic: Graphic) {
+        // create textview for callout
+        val calloutContent = TextView(requireActivity().applicationContext).apply {
+
+            setTextColor(ContextCompat.getColor(context, R.color.black))
+
+            this.text = if (identifiedGraphic.attributes["PlaceName"].toString().isNotEmpty()) {
+                identifiedGraphic.attributes["PlaceName"].toString() + "\n" + identifiedGraphic.attributes["Place_addr"].toString()
+            } else {
+                identifiedGraphic.attributes["Place_addr"].toString()
+            }
+        }
+        // get the center of the graphic to set the callout location
+        val centerOfGraphic = identifiedGraphic.geometry.extent.center
+        val calloutLocation = identifiedGraphic.computeCalloutLocation(centerOfGraphic, mapView)
+
+        callout = mapView.callout.apply {
+            showOptions = Callout.ShowOptions(true, true, true)
+            content = calloutContent
+            // set the leader position using the callout location
+            setGeoElement(identifiedGraphic, calloutLocation)
+            // show callout beneath graphic
+            style.leaderPosition = Callout.Style.LeaderPosition.UPPER_MIDDLE
+            // show callout
+            if(!isShowing){
+                show()
+            }
+        }
     }
 
     /**

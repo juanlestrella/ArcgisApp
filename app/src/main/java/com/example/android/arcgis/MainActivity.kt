@@ -11,14 +11,4 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
     }
-
-
-    /** TODO: start thinking about the following
-     * what api am i going to use
-     * how the app is going to be structured/ designed
-     *
-     * App Structure Options: Single Activity Architecture
-     * https://developer.android.com/guide/navigation/navigation-migrate
-     *
-     */
 }
