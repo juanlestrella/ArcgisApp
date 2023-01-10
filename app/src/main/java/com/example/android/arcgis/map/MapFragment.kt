@@ -40,6 +40,7 @@ import com.example.android.arcgis.Constants
 
 import com.example.android.arcgis.R
 import com.example.android.arcgis.databinding.FragmentMapBinding
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlin.math.roundToInt
 
 class MapFragment : Fragment() {
@@ -157,6 +158,7 @@ class MapFragment : Fragment() {
         setMap(binding.spinner)
         addFeatureLayers()
         setAddressSearchView()
+        recenterToCurrentLocation(binding.recenterCurrentLocation)
 
 
         return binding.root
@@ -446,5 +448,15 @@ class MapFragment : Fragment() {
             Toast.makeText(requireContext(), "Failed to load pin", Toast.LENGTH_LONG).show()
         }
         return null
+    }
+
+    /**
+     * Recenter the mapView to the current location when currentLocationButton is pressed
+     */
+    private fun recenterToCurrentLocation(fab: FloatingActionButton) {
+        fab.setOnClickListener {
+            locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.RECENTER
+            if (!locationDisplay.isStarted) locationDisplay.startAsync()
+        }
     }
 }

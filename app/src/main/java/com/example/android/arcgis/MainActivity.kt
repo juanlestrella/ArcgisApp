@@ -11,4 +11,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
     }
+    /**
+     * TODO:
+     * 1) Add button to recenter to current location
+     * 2) Add button to save current screen and add it to the home page
+     *
+     */
 }
