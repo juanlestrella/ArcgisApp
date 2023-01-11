@@ -22,6 +22,7 @@ import androidx.navigation.fragment.findNavController
 
 import com.esri.arcgisruntime.ArcGISRuntimeEnvironment.setApiKey
 import com.esri.arcgisruntime.concurrent.ListenableFuture
+import com.esri.arcgisruntime.data.Feature
 import com.esri.arcgisruntime.layers.FeatureLayer
 import com.esri.arcgisruntime.loadable.LoadStatus
 import com.esri.arcgisruntime.mapping.ArcGISMap
@@ -37,6 +38,7 @@ import com.esri.arcgisruntime.tasks.geocode.GeocodeResult
 import com.esri.arcgisruntime.tasks.geocode.LocatorTask
 import com.example.android.arcgis.BuildConfig.ArcgisToken
 import com.example.android.arcgis.Constants
+import com.example.android.arcgis.Constants.portal
 
 import com.example.android.arcgis.R
 import com.example.android.arcgis.databinding.FragmentMapBinding
@@ -224,8 +226,9 @@ class MapFragment : Fragment() {
      */
     private fun addFeatureLayers() {
         val portal = Portal(Constants.portal)
-        addFeatureLayerHelper(portal, Constants.portalItemIdShops)
-        addFeatureLayerHelper(portal, Constants.portalItemIdTouristAttractions)
+        addFeatureLayerHelper(portal, Constants.usaStructures)
+//        addFeatureLayerHelper(portal, Constants.portalItemIdShops)
+//        addFeatureLayerHelper(portal, Constants.portalItemIdTouristAttractions)
     }
 
     /**
@@ -376,11 +379,12 @@ class MapFragment : Fragment() {
             motionEvent.x.roundToInt(), motionEvent.y.roundToInt()
         )
         // get the graphics near the tapped location
-        val identifyResultFuture: ListenableFuture<IdentifyGraphicsOverlayResult> =
+        val identifyResultGraphicsOverlayResult: ListenableFuture<IdentifyGraphicsOverlayResult> =
             mapView.identifyGraphicsOverlayAsync(graphicsOverlay, screenPoint, 10.0, false)
-        identifyResultFuture.addDoneListener {
+
+        identifyResultGraphicsOverlayResult.addDoneListener {
             try{
-                val identifyGraphicsOverlayResult: IdentifyGraphicsOverlayResult = identifyResultFuture.get()
+                val identifyGraphicsOverlayResult: IdentifyGraphicsOverlayResult = identifyResultGraphicsOverlayResult.get()
                 val graphics = identifyGraphicsOverlayResult.graphics
                 // gets first graphic
                 if (graphics.isNotEmpty()){
@@ -393,6 +397,23 @@ class MapFragment : Fragment() {
             }catch (e: Exception){
                 Log.e(TAG, "Identify error: " + e.message)
                 Toast.makeText(requireContext(), "Identify error: " + e.message, Toast.LENGTH_LONG).show()
+            }
+        }
+
+        // Get the feature near the tapped location
+        val identifyResultFeatureLayerResult = mapView.identifyLayersAsync(screenPoint, 12.0, false, 10)
+        identifyResultFeatureLayerResult.addDoneListener {
+            try {
+                val identifyLayerResults = identifyResultFeatureLayerResult.get()
+                //TODO: handle the result
+                if(identifyLayerResults.isNotEmpty()){
+                    val identifiedFeature: IdentifyLayerResult = identifyLayerResults[0]
+                    Toast.makeText(requireContext(), identifiedFeature.toString(), Toast.LENGTH_LONG).show()
+                    //todo showcallout
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error identifying layer" + e.message)
+                Toast.makeText(requireContext(), "Error identifying layer" + e.message, Toast.LENGTH_LONG).show()
             }
         }
     }
