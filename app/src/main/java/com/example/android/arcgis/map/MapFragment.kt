@@ -25,10 +25,7 @@ import com.esri.arcgisruntime.concurrent.ListenableFuture
 import com.esri.arcgisruntime.data.Feature
 import com.esri.arcgisruntime.layers.FeatureLayer
 import com.esri.arcgisruntime.loadable.LoadStatus
-import com.esri.arcgisruntime.mapping.ArcGISMap
-import com.esri.arcgisruntime.mapping.Basemap
-import com.esri.arcgisruntime.mapping.BasemapStyle
-import com.esri.arcgisruntime.mapping.Viewpoint
+import com.esri.arcgisruntime.mapping.*
 import com.esri.arcgisruntime.mapping.view.*
 import com.esri.arcgisruntime.portal.Portal
 import com.esri.arcgisruntime.portal.PortalItem
@@ -151,7 +148,7 @@ class MapFragment : Fragment() {
             graphicsOverlays.add(graphicsOverlay)
             onTouchListener = object : DefaultMapViewOnTouchListener(requireContext(),mapView){
                 override fun onSingleTapConfirmed(motionEvent: MotionEvent): Boolean {
-                    identifyGraphic(motionEvent)
+                    identifyGraphicAndFeature(motionEvent)
                     return true
                 }
             }
@@ -226,7 +223,7 @@ class MapFragment : Fragment() {
      */
     private fun addFeatureLayers() {
         val portal = Portal(Constants.portal)
-        addFeatureLayerHelper(portal, Constants.usaStructures)
+        addFeatureLayerHelper(portal, Constants.wildernessAreasInUSA)
 //        addFeatureLayerHelper(portal, Constants.portalItemIdShops)
 //        addFeatureLayerHelper(portal, Constants.portalItemIdTouristAttractions)
     }
@@ -374,7 +371,7 @@ class MapFragment : Fragment() {
     /**
      * Identifies and shows a call out on tapped graphic
      */
-    private fun identifyGraphic(motionEvent: MotionEvent){
+    private fun identifyGraphicAndFeature(motionEvent: MotionEvent){
         val screenPoint: android.graphics.Point = android.graphics.Point(
             motionEvent.x.roundToInt(), motionEvent.y.roundToInt()
         )
@@ -390,7 +387,7 @@ class MapFragment : Fragment() {
                 if (graphics.isNotEmpty()){
                     val identifiedGraphic : Graphic = graphics[0]
                     // show call out of the identified graphic
-                    showCallout(identifiedGraphic)
+                    showGraphicCallout(identifiedGraphic)
                 } else {
                     callout?.dismiss()
                 }
@@ -400,7 +397,7 @@ class MapFragment : Fragment() {
             }
         }
 
-        // Get the feature near the tapped location
+        // get the feature near the tapped location
         val identifyResultFeatureLayerResult = mapView.identifyLayersAsync(screenPoint, 12.0, false, 10)
         identifyResultFeatureLayerResult.addDoneListener {
             try {
@@ -408,8 +405,11 @@ class MapFragment : Fragment() {
                 //TODO: handle the result
                 if(identifyLayerResults.isNotEmpty()){
                     val identifiedFeature: IdentifyLayerResult = identifyLayerResults[0]
-                    Toast.makeText(requireContext(), identifiedFeature.toString(), Toast.LENGTH_LONG).show()
-                    //todo showcallout
+                    showFeatureCallout(identifiedFeature.elements[0])
+//                    Toast.makeText(requireContext(), identifiedFeature.elements[0].attributes.keys.toString(), Toast.LENGTH_LONG).show()
+//                    Log.i(TAG, identifiedFeature.elements[0].attributes.keys.toString())
+//                    identifiedFeature.elements[0].attributes.keys.toString()
+//                    Keys: NAME, ImagePath, Description, STATE, URL
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error identifying layer" + e.message)
@@ -418,11 +418,44 @@ class MapFragment : Fragment() {
         }
     }
 
+    private fun showFeatureCallout(identifiedElement: GeoElement) {
+        val calloutContent = TextView(requireActivity().applicationContext).apply{
+            setTextColor(ContextCompat.getColor(context, R.color.black))
+            //TODO: Add drawable for imagePath and hyperlink for URL
+            for ((key,value) in identifiedElement.attributes) {
+                when (key) {
+                    "NAME" -> this.append("Name: $value\n")
+                    "ImagePath" -> this.append("ImagePath: $value\n") //*****//
+                    "Description" -> this.append("Description: $value\n")
+                    "STATE" -> this.append("State: $value\n")
+                    "URL" -> this.append("URL: $value")//*****//
+                }
+            }
+        }
+
+        // get the center of the graphic to set the callout location
+        val centerOfElement = identifiedElement.geometry.extent.center
+        val calloutLocation = identifiedElement.computeCalloutLocation(centerOfElement, mapView)
+
+        callout = mapView.callout.apply {
+            showOptions = Callout.ShowOptions(true, true, true)
+            content = calloutContent
+            // set the leader position using the callout location
+            setGeoElement(identifiedElement, calloutLocation)
+            // show callout beneath graphic
+            style.leaderPosition = Callout.Style.LeaderPosition.UPPER_MIDDLE
+            // show callout
+            if(!isShowing){
+                show()
+            }
+        }
+    }
+
     /**
      * Shows the given graphic's attributes as a call out
      * TODO: Add more information to callout
      */
-    private fun showCallout(identifiedGraphic: Graphic) {
+    private fun showGraphicCallout(identifiedGraphic: Graphic) {
         // create textview for callout
         val calloutContent = TextView(requireActivity().applicationContext).apply {
 
