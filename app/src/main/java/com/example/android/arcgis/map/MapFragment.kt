@@ -43,6 +43,7 @@ import com.example.android.arcgis.Constants.portal
 
 import com.example.android.arcgis.R
 import com.example.android.arcgis.databinding.FragmentMapBinding
+import com.example.android.arcgis.info.InfoFragment
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlin.math.roundToInt
 
@@ -151,7 +152,11 @@ class MapFragment : Fragment() {
             map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
 
             // graphicsOverlay requires ApiKey
-            graphicsOverlays.add(graphicsOverlay)
+            if (graphicsOverlays.contains(graphicsOverlay)){
+                graphicsOverlays.remove(graphicsOverlay)
+                graphicsOverlays.add(graphicsOverlay)
+            }
+
             onTouchListener = object : DefaultMapViewOnTouchListener(requireContext(),mapView){
                 override fun onSingleTapConfirmed(motionEvent: MotionEvent): Boolean {
                     identifyGraphicAndFeature(motionEvent)
@@ -160,13 +165,21 @@ class MapFragment : Fragment() {
             }
         }
 
-        setMap(binding.spinner)
+        setMap()
+        setSpinner(binding.spinner)
         addFeatureLayers()
         setAddressSearchView()
         recenterToCurrentLocation(binding.recenterCurrentLocation)
 
 
         return binding.root
+
+        /**
+         * TODO:
+         * When navigating to an InfoFragment and coming back using nav-up,
+         * the fragment no longer contains the current location and
+         * zooms out to max.
+         */
     }
 
     private fun setApiKey() {
@@ -174,8 +187,7 @@ class MapFragment : Fragment() {
         setApiKey(apiKey)
     }
 
-    private fun setMap(spinner: Spinner){
-        setSpinner(spinner)
+    private fun setMap(){
         locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.RECENTER
         locationDisplay.startAsync()
     }
