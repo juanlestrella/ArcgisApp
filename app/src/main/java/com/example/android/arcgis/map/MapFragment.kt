@@ -3,6 +3,7 @@ package com.example.android.arcgis.map
 import android.Manifest
 import android.content.res.ColorStateList
 import android.database.MatrixCursor
+import android.graphics.Color.green
 import android.graphics.drawable.BitmapDrawable
 import android.nfc.Tag
 import android.os.Bundle
@@ -14,10 +15,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.widget.AppCompatButton
 import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.core.content.ContextCompat
+import androidx.core.view.setPadding
 import androidx.fragment.app.Fragment
+import androidx.navigation.NavController
 import androidx.navigation.fragment.findNavController
 
 import com.esri.arcgisruntime.ArcGISRuntimeEnvironment.setApiKey
@@ -49,6 +53,8 @@ class MapFragment : Fragment() {
     }
 
     private lateinit var binding: FragmentMapBinding
+
+    private lateinit var navController: NavController
 
     private lateinit var mapView: MapView
 
@@ -136,7 +142,7 @@ class MapFragment : Fragment() {
         mapView = binding.mapView
         addressSearchView = binding.searchAddress
 
-        val navController = findNavController()
+        navController = findNavController()
 
         setApiKey()
 
@@ -419,20 +425,37 @@ class MapFragment : Fragment() {
     }
 
     private fun showFeatureCallout(identifiedElement: GeoElement) {
-        val calloutContent = TextView(requireActivity().applicationContext).apply{
+        val calloutContent = Button(requireContext()).apply{
+            setBackgroundColor(ContextCompat.getColor(context, R.color.purple_200))
+            setPadding(12)
             setTextColor(ContextCompat.getColor(context, R.color.black))
-            //TODO: Add drawable for imagePath and hyperlink for URL
-            for ((key,value) in identifiedElement.attributes) {
-                when (key) {
-                    "NAME" -> this.append("Name: $value\n")
-                    "ImagePath" -> this.append("ImagePath: $value\n") //*****//
-                    "Description" -> this.append("Description: $value\n")
-                    "STATE" -> this.append("State: $value\n")
-                    "URL" -> this.append("URL: $value")//*****//
-                }
+            this.text = "Name: ${identifiedElement.attributes["NAME"]}"
+            setOnClickListener {
+                //TODO: Open a new fragment and pass it as SafeArgs
+                navController.navigate(R.id.action_mapFragment_to_infoFragment)
+                Toast.makeText(requireContext(), identifiedElement.attributes["NAME"].toString(), Toast.LENGTH_LONG).show()
             }
         }
 
+//            TextView(requireActivity().applicationContext).apply{
+//            setTextColor(ContextCompat.getColor(context, R.color.black))
+//            //TODO: Add drawable for imagePath and hyperlink for URL
+//            for ((key,value) in identifiedElement.attributes) {
+//                when (key) {
+//                    "NAME" -> this.append("Name: $value\n")
+//                    "ImagePath" -> this.append("ImagePath: $value\n") //*****//
+//                    "Description" -> this.append("Description: $value\n")
+//                    "STATE" -> this.append("State: $value\n")
+//                    "URL" -> {
+//                        this.isClickable = true
+//                        this.movementMethod = LinkMovementMethod.getInstance()
+//                        this.setLinkTextColor(ContextCompat.getColor(context, R.color.teal_700))
+//                        this.append(HtmlCompat.fromHtml(value.toString(), Html.FROM_HTML_MODE_LEGACY))
+//
+//                    }//this.append("URL: $value")//*****//
+//                }
+//            }
+//        }
         // get the center of the graphic to set the callout location
         val centerOfElement = identifiedElement.geometry.extent.center
         val calloutLocation = identifiedElement.computeCalloutLocation(centerOfElement, mapView)
