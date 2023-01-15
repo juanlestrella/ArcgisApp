@@ -60,7 +60,7 @@ dependencies {
 
 
     // Arcgis dependencies
-    implementation 'com.esri.arcgisruntime:arcgis-android:100.15.0'
+    implementation 'com.esri.arcgisruntime:arcgis-android:100.14.0'
 
     // Navigation
     implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"

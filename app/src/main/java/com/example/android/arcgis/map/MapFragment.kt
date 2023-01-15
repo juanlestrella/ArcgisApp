@@ -47,6 +47,12 @@ import com.example.android.arcgis.info.InfoFragment
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlin.math.roundToInt
 
+/**
+ * TODO:
+ * When navigating to an InfoFragment and coming back using nav-up,
+ * the fragment no longer contains the current location and
+ * zooms out to max.
+ */
 class MapFragment : Fragment() {
 
     companion object {
@@ -56,6 +62,8 @@ class MapFragment : Fragment() {
     private lateinit var binding: FragmentMapBinding
 
     private lateinit var navController: NavController
+
+    private lateinit var spinner: Spinner
 
     private lateinit var mapView: MapView
 
@@ -83,9 +91,94 @@ class MapFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestPermission()
+
+        Log.i(TAG, "onCreate()")
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // save fragment's state here
+        outState.putInt("mySpinner", spinner.selectedItemPosition)
 
     }
+
+    override fun onPause() {
+        Log.i(TAG, "onPause()")
+        mapView.pause()
+        super.onPause()
+
+    }
+    override fun onResume() {
+        Log.i(TAG, "onResume()")
+        super.onResume()
+        mapView.addMapRotationChangedListener {  }
+        mapView.resume()
+
+    }
+//    override fun onDestroy() {
+//        Log.i(TAG, "onDestroy()")
+//        mapView.dispose()
+//        super.onDestroy()
+//    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+
+        Log.i(TAG, "onCreateView()")
+        
+        binding = FragmentMapBinding.inflate(inflater)
+        binding.lifecycleOwner = viewLifecycleOwner
+
+        mapView = binding.mapView
+        spinner = binding.spinner
+        addressSearchView = binding.searchAddress
+        navController = findNavController()
+
+        setApiKey()
+        requestPermission()
+
+        mapView.apply {
+//            // init map for addFeatureLayers
+            map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
+
+
+            // graphicsOverlay requires ApiKey
+            if (graphicsOverlays.contains(graphicsOverlay)){
+                graphicsOverlays.remove(graphicsOverlay)
+                graphicsOverlays.add(graphicsOverlay)
+            }
+
+            //graphicsOverlays.add(graphicsOverlay)
+
+            onTouchListener = object : DefaultMapViewOnTouchListener(requireContext(),mapView){
+                override fun onSingleTapConfirmed(motionEvent: MotionEvent): Boolean {
+                    identifyGraphicAndFeature(motionEvent)
+                    return true
+                }
+            }
+        }
+        setSpinner(spinner)
+        addFeatureLayers()
+        setAddressSearchView()
+        binding.recenterCurrentLocation.setOnClickListener {
+            recenterToCurrentLocation()
+        }
+
+//        if (savedInstanceState != null){
+//            // restore fragment's state here
+//            spinner.setSelection(savedInstanceState.getInt("mySpinner", 0))
+//        }
+
+        return binding.root
+    }
+
+    private fun setApiKey() {
+        setApiKey(Constants.API_KEY)
+    }
+
     /**
      * Request Permission from the user to get their current location
      */
@@ -97,14 +190,14 @@ class MapFragment : Fragment() {
             when {
                 permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) -> {
                     // Precise location access granted
-                    locationDisplay.startAsync()
+                    setMap()
                 }
                 permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {
                     // Only approximate location access granted
-                    locationDisplay.startAsync()
+                    setMap()
                 }
                 else -> {
-                    // no location granted
+                    // No location granted
                     Toast.makeText(
                         requireContext(),
                         resources.getString(R.string.location_permission_denied),
@@ -119,90 +212,22 @@ class MapFragment : Fragment() {
         ))
     }
 
-    override fun onPause() {
-        mapView.pause()
-        super.onPause()
-    }
-    override fun onResume() {
-        super.onResume()
-        mapView.resume()
-    }
-    override fun onDestroy() {
-        mapView.dispose()
-        super.onDestroy()
-    }
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        binding = FragmentMapBinding.inflate(inflater)
-        binding.lifecycleOwner = viewLifecycleOwner
-
-        mapView = binding.mapView
-        addressSearchView = binding.searchAddress
-
-        navController = findNavController()
-
-        setApiKey()
-
-        mapView.apply {
-            // init map for addFeatureLayers
-            map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
-
-            // graphicsOverlay requires ApiKey
-            if (graphicsOverlays.contains(graphicsOverlay)){
-                graphicsOverlays.remove(graphicsOverlay)
-                graphicsOverlays.add(graphicsOverlay)
-            }
-
-            onTouchListener = object : DefaultMapViewOnTouchListener(requireContext(),mapView){
-                override fun onSingleTapConfirmed(motionEvent: MotionEvent): Boolean {
-                    identifyGraphicAndFeature(motionEvent)
-                    return true
-                }
-            }
-        }
-
-        setMap()
-        setSpinner(binding.spinner)
-        addFeatureLayers()
-        setAddressSearchView()
-        recenterToCurrentLocation(binding.recenterCurrentLocation)
-
-
-        return binding.root
-
-        /**
-         * TODO:
-         * When navigating to an InfoFragment and coming back using nav-up,
-         * the fragment no longer contains the current location and
-         * zooms out to max.
-         */
-    }
-
-    private fun setApiKey() {
-        val apiKey = ArcgisToken
-        setApiKey(apiKey)
-    }
-
     private fun setMap(){
-        locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.RECENTER
         locationDisplay.startAsync()
+        locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.RECENTER
     }
 
     /**
      * Change the basemap style (OSM Standard, OSM Standard Relief, OSM Streets)
      */
     private fun setSpinner(spinner: Spinner) {
-        ArrayAdapter(
+        ArrayAdapter.createFromResource(
             requireContext(),
+            R.array.maps_array,
             android.R.layout.simple_spinner_item,
             //BasemapStyle.values().map {it.name.replace("_", " ")}.toTypedArray() // this would show all the basemap
-            resources.getStringArray(R.array.maps_array)
         ).also{ adapter ->
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_item)
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
             spinner.adapter = adapter
         }
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -215,17 +240,20 @@ class MapFragment : Fragment() {
                 when (position){
                     0 -> {
                         mapView.apply{
-                            map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
+                            map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
+                            addFeatureLayers()
                         }
                     }
                     1 -> {
                         mapView.apply{
-                            map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD_RELIEF)))
+                            map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD_RELIEF)))
+                            addFeatureLayers()
                         }
                     }
                     else -> {
                         mapView.apply{
-                            map.basemap = Basemap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STREETS)))
+                            map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STREETS)))
+                            addFeatureLayers()
                         }
                     }
                 }
@@ -242,8 +270,6 @@ class MapFragment : Fragment() {
     private fun addFeatureLayers() {
         val portal = Portal(Constants.portal)
         addFeatureLayerHelper(portal, Constants.wildernessAreasInUSA)
-//        addFeatureLayerHelper(portal, Constants.portalItemIdShops)
-//        addFeatureLayerHelper(portal, Constants.portalItemIdTouristAttractions)
     }
 
     /**
@@ -542,10 +568,10 @@ class MapFragment : Fragment() {
     /**
      * Recenter the mapView to the current location when currentLocationButton is pressed
      */
-    private fun recenterToCurrentLocation(fab: FloatingActionButton) {
-        fab.setOnClickListener {
-            locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.RECENTER
-            if (!locationDisplay.isStarted) locationDisplay.startAsync()
-        }
+    private fun recenterToCurrentLocation() {
+        locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.RECENTER
+        if (!locationDisplay.isStarted) locationDisplay.startAsync()
+
     }
+
 }
