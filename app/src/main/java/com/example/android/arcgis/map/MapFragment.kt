@@ -104,6 +104,7 @@ class MapFragment : Fragment() {
 
     override fun onPause() {
         Log.i(TAG, "onPause()")
+        mapView.locationDisplay.stop()
         mapView.pause()
         super.onPause()
 
@@ -111,15 +112,20 @@ class MapFragment : Fragment() {
     override fun onResume() {
         Log.i(TAG, "onResume()")
         super.onResume()
-        mapView.addMapRotationChangedListener {  }
         mapView.resume()
+        // Somehow calling setMap doesn't work here but doing the exact functionality of the funciton
+        // will solve the issue of not displaying and re-centering on current location
+        mapView.locationDisplay.apply {
+            startAsync()
+            autoPanMode = LocationDisplay.AutoPanMode.RECENTER
+        }
 
     }
-//    override fun onDestroy() {
-//        Log.i(TAG, "onDestroy()")
-//        mapView.dispose()
-//        super.onDestroy()
-//    }
+    override fun onDestroy() {
+        Log.i(TAG, "onDestroy()")
+        mapView.dispose()
+        super.onDestroy()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -128,7 +134,7 @@ class MapFragment : Fragment() {
     ): View {
 
         Log.i(TAG, "onCreateView()")
-        
+
         binding = FragmentMapBinding.inflate(inflater)
         binding.lifecycleOwner = viewLifecycleOwner
 
@@ -141,17 +147,14 @@ class MapFragment : Fragment() {
         requestPermission()
 
         mapView.apply {
-//            // init map for addFeatureLayers
+            // init map for addFeatureLayers
             map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
 
-
-            // graphicsOverlay requires ApiKey
+            // graphicsOverlay requires ApiKey, if theres already a graphicOverlay, then replace it
             if (graphicsOverlays.contains(graphicsOverlay)){
                 graphicsOverlays.remove(graphicsOverlay)
                 graphicsOverlays.add(graphicsOverlay)
             }
-
-            //graphicsOverlays.add(graphicsOverlay)
 
             onTouchListener = object : DefaultMapViewOnTouchListener(requireContext(),mapView){
                 override fun onSingleTapConfirmed(motionEvent: MotionEvent): Boolean {
@@ -169,7 +172,6 @@ class MapFragment : Fragment() {
 
 //        if (savedInstanceState != null){
 //            // restore fragment's state here
-//            spinner.setSelection(savedInstanceState.getInt("mySpinner", 0))
 //        }
 
         return binding.root
