@@ -92,16 +92,14 @@ class MapFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         Log.i(TAG, "onCreate()")
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        // save fragment's state here
-        outState.putInt("mySpinner", spinner.selectedItemPosition)
-
-    }
+//    override fun onSaveInstanceState(outState: Bundle) {
+//        super.onSaveInstanceState(outState)
+//        // save fragment's state here
+//
+//    }
 
     override fun onPause() {
         Log.i(TAG, "onPause()")
@@ -122,10 +120,10 @@ class MapFragment : Fragment() {
         }
 
     }
-    override fun onDestroy() {
-        Log.i(TAG, "onDestroy()")
+    override fun onDestroyView() {
+        Log.i(TAG, "onDestroyView()")
         mapView.dispose()
-        super.onDestroy()
+        super.onDestroyView()
     }
 
     override fun onCreateView(
@@ -453,10 +451,6 @@ class MapFragment : Fragment() {
                 if(identifyLayerResults.isNotEmpty()){
                     val identifiedFeature: IdentifyLayerResult = identifyLayerResults[0]
                     showFeatureCallout(identifiedFeature.elements[0])
-//                    Toast.makeText(requireContext(), identifiedFeature.elements[0].attributes.keys.toString(), Toast.LENGTH_LONG).show()
-//                    Log.i(TAG, identifiedFeature.elements[0].attributes.keys.toString())
-//                    identifiedFeature.elements[0].attributes.keys.toString()
-//                    Keys: NAME, ImagePath, Description, STATE, URL
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error identifying layer" + e.message)
@@ -467,12 +461,12 @@ class MapFragment : Fragment() {
 
     private fun showFeatureCallout(identifiedElement: GeoElement) {
         val calloutContent = Button(requireContext()).apply{
-            setBackgroundColor(ContextCompat.getColor(context, R.color.purple_200))
+            setBackgroundColor(ContextCompat.getColor(context, R.color.blue))
+            setTextColor(ContextCompat.getColor(context, R.color.white))
             setPadding(12)
-            setTextColor(ContextCompat.getColor(context, R.color.black))
             this.text = "Name: ${identifiedElement.attributes["NAME"]}"
             setOnClickListener {
-                //TODO: Open a new fragment and pass it as SafeArgs
+                // open a new fragment and pass args as SafeArgs
                 val action =
                     MapFragmentDirections.actionMapFragmentToInfoFragment(
                         identifiedElement.attributes["NAME"].toString(),
@@ -482,29 +476,10 @@ class MapFragment : Fragment() {
                         identifiedElement.attributes["ImagePath"].toString()
                     )
                 navController.navigate(action)
-                Toast.makeText(requireContext(), identifiedElement.attributes["ImagePath"].toString(), Toast.LENGTH_LONG).show()
+                //Toast.makeText(requireContext(), identifiedElement.attributes["ImagePath"].toString(), Toast.LENGTH_LONG).show()
             }
         }
 
-//            TextView(requireActivity().applicationContext).apply{
-//            setTextColor(ContextCompat.getColor(context, R.color.black))
-//            //TODO: Add drawable for imagePath and hyperlink for URL
-//            for ((key,value) in identifiedElement.attributes) {
-//                when (key) {
-//                    "NAME" -> this.append("Name: $value\n")
-//                    "ImagePath" -> this.append("ImagePath: $value\n") //*****//
-//                    "Description" -> this.append("Description: $value\n")
-//                    "STATE" -> this.append("State: $value\n")
-//                    "URL" -> {
-//                        this.isClickable = true
-//                        this.movementMethod = LinkMovementMethod.getInstance()
-//                        this.setLinkTextColor(ContextCompat.getColor(context, R.color.teal_700))
-//                        this.append(HtmlCompat.fromHtml(value.toString(), Html.FROM_HTML_MODE_LEGACY))
-//
-//                    }//this.append("URL: $value")//*****//
-//                }
-//            }
-//        }
         // get the center of the graphic to set the callout location
         val centerOfElement = identifiedElement.geometry.extent.center
         val calloutLocation = identifiedElement.computeCalloutLocation(centerOfElement, mapView)

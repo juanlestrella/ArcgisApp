@@ -2,50 +2,59 @@
 <layout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".info.InfoFragment">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:context=".info.InfoFragment">
+        android:layout_height="match_parent">
 
-        <TextView
-            android:id="@+id/info_name"
-            android:hint="NAME"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"/>
-        <ImageView
-            android:id="@+id/info_image"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:autofillHints="Image Here"
-            app:layout_constraintTop_toBottomOf="@id/info_name"
-            app:layout_constraintStart_toStartOf="parent"/>
-        <TextView
-            android:id="@+id/info_description"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:hint="Description"
-            app:layout_constraintTop_toBottomOf="@id/info_image"
-            app:layout_constraintStart_toStartOf="parent"/>
-        <TextView
-            android:id="@+id/info_state"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:hint="State"
-            app:layout_constraintTop_toBottomOf="@id/info_description"
-            app:layout_constraintStart_toStartOf="parent"/>
-        <TextView
-            android:id="@+id/info_url"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:hint="URL"
-            app:layout_constraintTop_toBottomOf="@id/info_state"
-            app:layout_constraintStart_toStartOf="parent"/>
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/info_name"
+                android:hint="NAME"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"/>
+            <ImageView
+                android:id="@+id/info_image"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:autofillHints="Image Here"
+                app:layout_constraintTop_toBottomOf="@id/info_name"
+                app:layout_constraintStart_toStartOf="parent"/>
+            <TextView
+                android:id="@+id/info_description"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:hint="Description"
+                app:layout_constraintTop_toBottomOf="@id/info_image"
+                app:layout_constraintStart_toStartOf="parent"/>
+            <TextView
+                android:id="@+id/info_state"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:hint="State"
+                app:layout_constraintTop_toBottomOf="@id/info_description"
+                app:layout_constraintStart_toStartOf="parent"/>
+            <Button
+                android:id="@+id/info_url"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="more info"
+                android:hint="URL"
+                android:textColor="@color/white"
+                android:backgroundTint="@color/blue"
+                app:layout_constraintTop_toBottomOf="@id/info_state"
+                app:layout_constraintStart_toStartOf="parent"/>
 
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </ScrollView>
 
 </layout>
