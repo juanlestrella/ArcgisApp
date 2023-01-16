@@ -23,5 +23,25 @@
         <action
             android:id="@+id/action_infoFragment_to_mapFragment"
             app:destination="@id/mapFragment" />
+        <argument
+            android:name="name"
+            app:argType="string"
+            android:defaultValue="Name" />
+        <argument
+            android:name="description"
+            app:argType="string"
+            android:defaultValue="description" />
+        <argument
+            android:name="state"
+            app:argType="string"
+            android:defaultValue="state" />
+        <argument
+            android:name="url"
+            app:argType="string"
+            android:defaultValue="url" />
+        <argument
+            android:name="image"
+            app:argType="string"
+            android:defaultValue="image" />
     </fragment>
 </navigation>

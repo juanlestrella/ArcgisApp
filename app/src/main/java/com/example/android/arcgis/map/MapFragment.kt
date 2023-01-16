@@ -44,6 +44,7 @@ import com.example.android.arcgis.Constants.portal
 import com.example.android.arcgis.R
 import com.example.android.arcgis.databinding.FragmentMapBinding
 import com.example.android.arcgis.info.InfoFragment
+import com.example.android.arcgis.info.InfoFragmentDirections
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlin.math.roundToInt
 
@@ -472,8 +473,16 @@ class MapFragment : Fragment() {
             this.text = "Name: ${identifiedElement.attributes["NAME"]}"
             setOnClickListener {
                 //TODO: Open a new fragment and pass it as SafeArgs
-                navController.navigate(R.id.action_mapFragment_to_infoFragment)
-                Toast.makeText(requireContext(), identifiedElement.attributes["NAME"].toString(), Toast.LENGTH_LONG).show()
+                val action =
+                    MapFragmentDirections.actionMapFragmentToInfoFragment(
+                        identifiedElement.attributes["NAME"].toString(),
+                        identifiedElement.attributes["Description"].toString(),
+                        identifiedElement.attributes["STATE"].toString(),
+                        identifiedElement.attributes["URL"].toString(),
+                        identifiedElement.attributes["ImagePath"].toString()
+                    )
+                navController.navigate(action)
+                Toast.makeText(requireContext(), identifiedElement.attributes["ImagePath"].toString(), Toast.LENGTH_LONG).show()
             }
         }
 
