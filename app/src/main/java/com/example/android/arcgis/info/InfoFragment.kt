@@ -42,9 +42,9 @@ class InfoFragment : Fragment() {
         binding = FragmentInfoBinding.inflate(inflater)
 
         binding.infoName.text = args.name
-        binding.infoDescription.text = args.description
-        binding.infoState.text = args.state
-        setUpHyperlink(binding.infoUrl) //binding.infoUrl.text = args.url
+        binding.infoState.text = getString(R.string.location, args.state)
+        binding.infoDescription.text = getString(R.string.about, args.description)
+        setUpHyperlink(binding.infoUrl)
         setUpImage(binding.infoImage)
 
         return binding.root

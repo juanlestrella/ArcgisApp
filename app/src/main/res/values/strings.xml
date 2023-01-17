@@ -10,4 +10,6 @@
     <string name="OSM_STANDARD_RELIEF">OSM_STANDARD_RELIEF</string>
     <string name="OSM_STREETS">OSM_STREETS</string>
     <string name="search_address"> Search Address </string>
+    <string name="location"> Location: %1$s</string>
+    <string name="about">About: %1$s</string>
 </resources>

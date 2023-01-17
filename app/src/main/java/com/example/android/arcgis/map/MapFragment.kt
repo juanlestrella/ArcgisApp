@@ -95,11 +95,13 @@ class MapFragment : Fragment() {
         Log.i(TAG, "onCreate()")
     }
 
-//    override fun onSaveInstanceState(outState: Bundle) {
-//        super.onSaveInstanceState(outState)
-//        // save fragment's state here
-//
-//    }
+    /*
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // save fragment's state here
+
+    }
+    */
 
     override fun onPause() {
         Log.i(TAG, "onPause()")
@@ -122,6 +124,7 @@ class MapFragment : Fragment() {
     }
     override fun onDestroyView() {
         Log.i(TAG, "onDestroyView()")
+        mapView.graphicsOverlays.clear() // need this to avoid error: Object already owned.
         mapView.dispose()
         super.onDestroyView()
     }
@@ -131,7 +134,6 @@ class MapFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-
         Log.i(TAG, "onCreateView()")
 
         binding = FragmentMapBinding.inflate(inflater)
@@ -150,10 +152,7 @@ class MapFragment : Fragment() {
             map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
 
             // graphicsOverlay requires ApiKey, if theres already a graphicOverlay, then replace it
-            if (graphicsOverlays.contains(graphicsOverlay)){
-                graphicsOverlays.remove(graphicsOverlay)
-                graphicsOverlays.add(graphicsOverlay)
-            }
+            graphicsOverlays.add(graphicsOverlay)
 
             onTouchListener = object : DefaultMapViewOnTouchListener(requireContext(),mapView){
                 override fun onSingleTapConfirmed(motionEvent: MotionEvent): Boolean {
@@ -169,10 +168,11 @@ class MapFragment : Fragment() {
             recenterToCurrentLocation()
         }
 
-//        if (savedInstanceState != null){
-//            // restore fragment's state here
-//        }
-
+        /*
+        if (savedInstanceState != null){
+            // restore fragment's state here
+        }
+        */
         return binding.root
     }
 
