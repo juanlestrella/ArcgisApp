@@ -19,7 +19,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:backgroundTint="@color/blue"
-                android:textSize="@dimen/title_text_size"
+                style="@style/TitleText"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"/>
             <ImageView
@@ -34,7 +34,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:hint="State"
-                android:textSize="@dimen/body_text_size"
+                style="@style/GeneralText"
                 app:layout_constraintTop_toBottomOf="@id/info_image"
                 app:layout_constraintStart_toStartOf="parent" />
             <TextView
@@ -42,18 +42,16 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:hint="Description"
-                android:textSize="@dimen/body_text_size"
+                style="@style/GeneralText"
                 app:layout_constraintTop_toBottomOf="@id/info_state"
                 app:layout_constraintStart_toStartOf="parent" />
-
             <Button
                 android:id="@+id/info_url"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="more info"
                 android:hint="URL"
-                android:textColor="@color/white"
-                android:backgroundTint="@color/blue"
+                android:layout_margin="@dimen/button_margin"
                 app:layout_constraintTop_toBottomOf="@id/info_description"
                 app:layout_constraintStart_toStartOf="parent"/>
 

@@ -461,9 +461,9 @@ class MapFragment : Fragment() {
 
     private fun showFeatureCallout(identifiedElement: GeoElement) {
         val calloutContent = Button(requireContext()).apply{
-            setBackgroundColor(ContextCompat.getColor(context, R.color.blue))
+            setBackgroundColor(ContextCompat.getColor(context, R.color.primary))
             setTextColor(ContextCompat.getColor(context, R.color.white))
-            setPadding(12)
+            setPadding(8)
             this.text = "Name: ${identifiedElement.attributes["NAME"]}"
             setOnClickListener {
                 // open a new fragment and pass args as SafeArgs

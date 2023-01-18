@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="TitleText" parent="TextAppearance.AppCompat.Headline">
+        <item name="android:textSize">@dimen/title_text_size</item>
+        <item name="android:padding">@dimen/text_padding</item>
+    </style>
+    <style name="GeneralText" parent="TextAppearance.AppCompat.Body1">
+        <item name="android:textSize">@dimen/body_text_size</item>
+        <item name="android:padding">@dimen/text_padding</item>
+    </style>
+
+
+</resources>
