@@ -13,6 +13,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -58,10 +59,19 @@ class InfoFragment : Fragment() {
 
     private fun setUpHyperlink(infoUrl: Button) {
         infoUrl.setOnClickListener {
-            val browserIntent = Intent(Intent.ACTION_VIEW, parse(args.url))
-            startActivity(browserIntent)
+            if (args.url.isNullOrEmpty()){
+                Toast.makeText(requireContext(), "No Available Website", Toast.LENGTH_LONG).show()
+            } else {
+                val browserIntent = Intent(Intent.ACTION_VIEW, parse(args.url))
+                startActivity(browserIntent)
+            }
         }
 
     }
+
+    /* WILDERNESS WITH NULL VALUES
+
+        Cinder Cone Wilderness
+     */
 
 }
