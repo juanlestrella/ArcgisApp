@@ -82,10 +82,6 @@ class MapFragment : Fragment() {
         LocatorTask(Constants.locatorTask)
     }
 
-    private val locationDisplay: LocationDisplay by lazy {
-        mapView.locationDisplay
-    }
-
     private val graphicsOverlay: GraphicsOverlay by lazy {
         GraphicsOverlay()
     }
@@ -108,19 +104,12 @@ class MapFragment : Fragment() {
         mapView.locationDisplay.stop()
         mapView.pause()
         super.onPause()
-
     }
     override fun onResume() {
         Log.i(TAG, "onResume()")
         super.onResume()
         mapView.resume()
-        // Somehow calling setMap doesn't work here but doing the exact functionality of the funciton
-        // will solve the issue of not displaying and re-centering on current location
-        mapView.locationDisplay.apply {
-            startAsync()
-            autoPanMode = LocationDisplay.AutoPanMode.RECENTER
-        }
-
+        setMap()
     }
     override fun onDestroyView() {
         Log.i(TAG, "onDestroyView()")
@@ -165,7 +154,7 @@ class MapFragment : Fragment() {
         addFeatureLayers()
         setAddressSearchView()
         binding.recenterCurrentLocation.setOnClickListener {
-            recenterToCurrentLocation()
+            setMap()
         }
 
         /*
@@ -214,8 +203,10 @@ class MapFragment : Fragment() {
     }
 
     private fun setMap(){
-        locationDisplay.startAsync()
-        locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.RECENTER
+        mapView.locationDisplay.apply {
+            autoPanMode = LocationDisplay.AutoPanMode.RECENTER
+            if(!isStarted) startAsync()
+        }
     }
 
     /**
@@ -240,28 +231,27 @@ class MapFragment : Fragment() {
                 //mapView.map = ArcGISMap(BasemapStyle.valueOf(parent.getItemAtPosition(position).toString().replace(" ", "_"))) // this would show all the basemap
                 when (position){
                     0 -> {
-                        mapView.apply{
-                            map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD)))
-                            addFeatureLayers()
-                        }
+                        setSpinnerHelper(R.string.OSM_STANDARD)
                     }
                     1 -> {
-                        mapView.apply{
-                            map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STANDARD_RELIEF)))
-                            addFeatureLayers()
-                        }
+                        setSpinnerHelper(R.string.OSM_STANDARD_RELIEF)
                     }
                     else -> {
-                        mapView.apply{
-                            map = ArcGISMap(BasemapStyle.valueOf(resources.getString(R.string.OSM_STREETS)))
-                            addFeatureLayers()
-                        }
+                        setSpinnerHelper(R.string.OSM_STREETS)
                     }
                 }
             }
             override fun onNothingSelected(p0: AdapterView<*>?) {
                 Toast.makeText(context, "Nothing selected", Toast.LENGTH_LONG).show()
             }
+        }
+    }
+
+    private fun setSpinnerHelper(mapType: Int){
+        mapView.apply{
+            map = ArcGISMap(BasemapStyle.valueOf(resources.getString(mapType)))
+            addFeatureLayers()
+            setMap()
         }
     }
 
@@ -549,15 +539,6 @@ class MapFragment : Fragment() {
             Toast.makeText(requireContext(), "Failed to load pin", Toast.LENGTH_LONG).show()
         }
         return null
-    }
-
-    /**
-     * Recenter the mapView to the current location when currentLocationButton is pressed
-     */
-    private fun recenterToCurrentLocation() {
-        locationDisplay.autoPanMode = LocationDisplay.AutoPanMode.RECENTER
-        if (!locationDisplay.isStarted) locationDisplay.startAsync()
-
     }
 
 }
